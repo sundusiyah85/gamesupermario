@@ -28,3 +28,6 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Imported application
+- Keep the original quiz game as a static document under `public/game/` and expose it at `/` through a full-viewport iframe; this preserves its canvas engine and browser-only storage without a backend rewrite.

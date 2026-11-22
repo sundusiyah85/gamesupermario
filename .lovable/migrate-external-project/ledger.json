@@ -1,0 +1,103 @@
+{
+  "source": "code-archive (supermarioquiz-main.zip)",
+  "capabilities": [
+    {
+      "capability": "code",
+      "source": "public/game/index.html: single-file Indonesian canvas platformer and quiz",
+      "outcome": "Preserve the game and expose it from the app's first screen",
+      "status": "verified",
+      "next_action": "none"
+    },
+    {
+      "capability": "schema",
+      "source": "No database schema found",
+      "outcome": "No database to migrate; retain the source app's browser-only storage model",
+      "status": "verified",
+      "next_action": "none"
+    },
+    {
+      "capability": "records",
+      "source": "36 built-in questions and editable question bank in localStorage; no saved-record export in ZIP",
+      "outcome": "Keep built-in questions and the existing import/export flow; custom saved banks are not in the archive",
+      "status": "pending",
+      "next_action": "After preview, request a JSON export from the old app if the user wants to bring custom questions"
+    },
+    {
+      "capability": "auth_identities",
+      "source": "No authentication or user identity system found",
+      "outcome": "Not applicable",
+      "status": "verified",
+      "next_action": "none"
+    },
+    {
+      "capability": "authorization",
+      "source": "No roles, memberships, or server access rules found",
+      "outcome": "Not applicable",
+      "status": "verified",
+      "next_action": "none"
+    },
+    {
+      "capability": "uploaded_file_bytes",
+      "source": "ZIP contains an audio asset pointer but not its 1.3 MB MP3 bytes; original public asset was retrieved to temporary storage",
+      "outcome": "Re-hosted the music through Lovable Assets; the preview returned the asset successfully",
+      "status": "verified",
+      "next_action": "none"
+    },
+    {
+      "capability": "external_providers",
+      "source": "Google Gemini question generator uses a key entered by each player in the game",
+      "outcome": "Preserve the existing in-game provider and key-entry flow; no project secret is required",
+      "status": "pending",
+      "next_action": "Live AI generation requires a player's own Gemini key; do not request it in chat"
+    },
+    {
+      "capability": "public_endpoints",
+      "source": "None found",
+      "outcome": "Not applicable",
+      "status": "verified",
+      "next_action": "none"
+    },
+    {
+      "capability": "callbacks",
+      "source": "None found",
+      "outcome": "Not applicable",
+      "status": "verified",
+      "next_action": "none"
+    },
+    {
+      "capability": "webhooks",
+      "source": "None found",
+      "outcome": "Not applicable",
+      "status": "verified",
+      "next_action": "none"
+    },
+    {
+      "capability": "schedules",
+      "source": "None found",
+      "outcome": "Not applicable",
+      "status": "verified",
+      "next_action": "none"
+    },
+    {
+      "capability": "secrets",
+      "source": "No project secrets; the source stores a player-provided Gemini key in that player's browser",
+      "outcome": "Preserve the player-controlled setting without copying credentials into the project",
+      "status": "verified",
+      "next_action": "none"
+    },
+    {
+      "capability": "cutover",
+      "source": "README lists https://supermarioquiz.lovable.app as the current live app",
+      "outcome": "Create a preview in this project without changing the source app or its URL",
+      "status": "pending",
+      "next_action": "Publish from this project only if the user intends to replace the old app"
+    },
+    {
+      "capability": "verification",
+      "source": "Preview route and representative game startup",
+      "outcome": "Desktop and mobile previews load; menu, mode choice, single-player start, and music asset were verified with no browser errors",
+      "status": "verified",
+      "next_action": "none"
+    }
+  ]
+}

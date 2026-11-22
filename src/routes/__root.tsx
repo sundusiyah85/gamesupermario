@@ -75,20 +75,23 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
-    // Replace these placeholders with the app's name and description when first building the app.
-    // Each content route, / included, must still set its own head(). Never add og:image or
-    // twitter:image here: every page without its own would inherit the root's preview image.
+    // Content routes provide their own unique page metadata.
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Mario Adventure Quiz" },
+      {
+        name: "description",
+        content: "Game edukasi platformer 2D dengan kuis untuk kelas 1–6.",
+      },
+      { name: "author", content: "Mario Adventure Quiz" },
+      { property: "og:title", content: "Mario Adventure Quiz" },
+      {
+        property: "og:description",
+        content: "Game edukasi platformer 2D dengan kuis untuk kelas 1–6.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
