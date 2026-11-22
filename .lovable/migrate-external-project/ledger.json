@@ -4,7 +4,7 @@
     {
       "capability": "code",
       "source": "public/game/index.html: single-file Indonesian canvas platformer and quiz",
-      "outcome": "Preserve the game and expose it from the app's first screen",
+      "outcome": "Preserve the game at the app's first screen and load music from a same-origin static file for independent hosts",
       "status": "verified",
       "next_action": "none"
     },
@@ -39,7 +39,7 @@
     {
       "capability": "uploaded_file_bytes",
       "source": "ZIP contains an audio asset pointer but not its 1.3 MB MP3 bytes; original public asset was retrieved to temporary storage",
-      "outcome": "Re-hosted the music through Lovable Assets; the preview returned the asset successfully",
+      "outcome": "Kept the Lovable asset pointer and added the 1.3 MB MP3 at public/game/mario.mp3 for standalone Cloudflare deployments",
       "status": "verified",
       "next_action": "none"
     },
@@ -95,7 +95,7 @@
     {
       "capability": "verification",
       "source": "Preview route and representative game startup",
-      "outcome": "Desktop and mobile previews load; menu, mode choice, single-player start, and music asset were verified with no browser errors",
+      "outcome": "Game start successfully played the local MP3; its URL returned audio/mpeg with no browser errors",
       "status": "verified",
       "next_action": "none"
     }

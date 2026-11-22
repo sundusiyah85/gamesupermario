@@ -30,4 +30,4 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Imported application
-- Keep the original quiz game as a static document under `public/game/` and expose it at `/` through a full-viewport iframe; this preserves its canvas engine and browser-only storage without a backend rewrite.
+- Keep the original quiz game as a static document under `public/game/` and expose it at `/` through a full-viewport iframe; store files needed by independent static hosts alongside it so builds include them and browser-only storage remains intact.
