@@ -922,12 +922,50 @@ class SoundEngine {
         this.playTone(220, 'sawtooth', 0.18, 0, 0.14);
         this.playTone(165, 'sawtooth', 0.3, 0.16, 0.14);
     }
+    powerupAppear() {
+        [523.25, 659.25, 783.99, 1046.5].forEach((n, i) => this.playTone(n, 'triangle', 0.08, i * 0.05, 0.12));
+    }
+    powerUp() {
+        [392, 493.88, 587.33, 783.99, 987.77, 1174.66].forEach((n, i) => this.playTone(n, 'square', 0.09, i * 0.06, 0.11));
+    }
+    shrink() {
+        [783.99, 587.33, 392, 293.66].forEach((n, i) => this.playTone(n, 'square', 0.09, i * 0.07, 0.11));
+    }
+    fanfare() {
+        const seq = [[392,0.12],[523.25,0.12],[659.25,0.12],[783.99,0.12],[1046.5,0.12],[1318.51,0.12],[1567.98,0.36],[1318.51,0.36],
+                     [415.3,0.12],[523.25,0.12],[622.25,0.12],[830.61,0.12],[1046.5,0.12],[1244.51,0.12],[1661.22,0.36],[1244.51,0.36],
+                     [466.16,0.12],[587.33,0.12],[698.46,0.12],[932.33,0.12],[1174.66,0.12],[1396.91,0.12],[1864.66,0.36],[1864.66,0.12],[1864.66,0.12],[1864.66,0.12],[2093,0.8]];
+        let t = 0;
+        seq.forEach(([f, d]) => { this.playTone(f, 'square', d * 0.95, t, 0.1); this.playTone(f / 2, 'triangle', d * 0.95, t, 0.12); t += d; });
+    }
     win() {
         const notes = [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5];
         notes.forEach((n, i) => this.playTone(n, 'square', 0.16, i * 0.14, 0.14));
     }
 }
 const sfx = new SoundEngine();
+
+/* Musik Tema Menu (disintesis, tanpa file) */
+const MenuMusic = {
+    timer: null, step: 0,
+    melody: [659,659,0,659,0,523,659,0,784,0,0,0,392,0,0,0, 523,0,0,392,0,0,330,0,0,440,0,494,0,466,440,0],
+    bass:   [147,0,147,0,147,0,147,0,196,0,196,0,98,0,98,0, 196,0,0,165,0,0,131,0,0,175,0,196,0,185,175,0],
+    start() {
+        if (this.timer || !sfx.enabled) return;
+        sfx.init();
+        if (!sfx.ctx) return;
+        this.timer = setInterval(() => {
+            if (!sfx.enabled) return this.stop();
+            const i = this.step % this.melody.length;
+            if (this.melody[i]) sfx.playTone(this.melody[i], 'square', 0.13, 0, 0.06);
+            if (this.bass[i]) sfx.playTone(this.bass[i], 'triangle', 0.14, 0, 0.1);
+            this.step++;
+        }, 150);
+    },
+    stop() { clearInterval(this.timer); this.timer = null; this.step = 0; }
+};
+function tryMenuMusic() { if (gameState === 'menu') MenuMusic.start(); }
+['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, tryMenuMusic));
 document.addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b || b.closest('#touch-single, #touch-multi')) return;
@@ -946,6 +984,12 @@ function playBgMusic() {
     });
 }
 
+function updateStarMusic() {
+    if (!bgMusic) return;
+    const star = worlds.some(w => w.player && w.player.starTimer > 0);
+    bgMusic.playbackRate = star ? 1.35 : 1;
+}
+
 function pauseBgMusic() {
     if (bgMusic && !bgMusic.paused) {
         bgMusic.pause();
@@ -956,6 +1000,7 @@ function stopBgMusic() {
     if (bgMusic) {
         bgMusic.pause();
         bgMusic.currentTime = 0;
+        bgMusic.playbackRate = 1;
     }
 }
 
@@ -1398,6 +1443,8 @@ class PlayerWorld {
             animTimer: 0,
             landTimer: 0,
             invulnTimer: 0,
+            big: false,
+            starTimer: 0,
             safeX: 100,
             safeY: 340
         };
@@ -1405,6 +1452,8 @@ class PlayerWorld {
         this.particles = [];
         this.floatingTexts = [];
         this.fireworks = [];
+        this.powerups = [];
+        this.qHits = 0;
 
         this.buildLevel();
     }
@@ -1646,7 +1695,8 @@ class PlayerWorld {
         if (p.landTimer > 0) p.landTimer -= dt;
 
         // Kecepatan & Momentum Horizontal
-        const maxSpeed = input.run ? 340 : 215;
+        if (p.starTimer > 0) { p.starTimer -= dt; if (p.starTimer <= 0) { p.starTimer = 0; updateStarMusic(); } }
+        const maxSpeed = (input.run ? 340 : 215) * (p.starTimer > 0 ? 1.3 : 1);
         const accel = input.run ? 1500 : 1150;
         const friction = 1300;
 
@@ -1721,11 +1771,18 @@ class PlayerWorld {
                     if (s.type === 'question') {
                         s.type = 'used';
                         s.bumpY = -8;
-                        this.coins += 1;
-                        this.score += 100;
-                        sfx.coin();
-                        this.spawnParticles(s.x + 18, s.y - 10, '#fbd000', 10);
-                        this.spawnFloatingText(s.x + 8, s.y - 16, '+100', '#fbd000');
+                        this.qHits += 1;
+                        const kind = this.qHits % 4 === 0 ? 'star' : (this.qHits % 2 === 0 ? 'mushroom' : null);
+                        if (kind) {
+                            this.powerups.push({ kind, x: s.x + 4, y: s.y - 2, w: 28, h: 28, vx: 0, vy: 0, rise: 28, baseY: s.y - 30 });
+                            sfx.powerupAppear();
+                        } else {
+                            this.coins += 1;
+                            this.score += 100;
+                            sfx.coin();
+                            this.spawnParticles(s.x + 18, s.y - 10, '#fbd000', 10);
+                            this.spawnFloatingText(s.x + 8, s.y - 16, '+100', '#fbd000');
+                        }
                     } else if (s.type === 'brick') {
                         s.bumpY = -6;
                         sfx.bump();
@@ -1780,6 +1837,39 @@ class PlayerWorld {
             }
         });
 
+        // Update Power-Up (Jamur & Bintang)
+        this.powerups.forEach(pu => {
+            if (pu.rise > 0) {
+                const d = Math.min(pu.rise, 40 * dt); pu.y -= d; pu.rise -= d;
+                if (pu.rise <= 0) { pu.vx = 110; if (pu.kind === 'star') pu.vy = -420; }
+            } else {
+                pu.vy += 1480 * dt; if (pu.vy > 820) pu.vy = 820;
+                pu.x += pu.vx * dt;
+                for (const s of solids) if (this.rectsOverlap(pu, s)) { pu.x = pu.vx > 0 ? s.x - pu.w : s.x + s.w; pu.vx = -pu.vx; }
+                pu.y += pu.vy * dt;
+                for (const s of solids) if (this.rectsOverlap(pu, s)) {
+                    if (pu.vy > 0) { pu.y = s.y - pu.h; pu.vy = pu.kind === 'star' ? -480 : 0; } else { pu.y = s.y + s.h; pu.vy = 0; }
+                }
+                if (pu.y > this.baseHeight + 100) pu.gone = true;
+            }
+            if (!pu.gone && pu.rise <= 0 && this.rectsOverlap(p, pu)) {
+                pu.gone = true;
+                this.score += 1000;
+                if (pu.kind === 'mushroom') {
+                    p.big = true;
+                    sfx.powerUp();
+                    this.spawnFloatingText(p.x - 20, p.y - 20, 'SUPER! +1000', '#f97316');
+                } else {
+                    p.starTimer = 10;
+                    sfx.powerUp();
+                    updateStarMusic();
+                    this.spawnFloatingText(p.x - 20, p.y - 20, 'BINTANG! +1000', '#fde047');
+                }
+                this.spawnParticles(p.x + 17, p.y + 20, pu.kind === 'star' ? '#fde047' : '#ef4444', 16);
+            }
+        });
+        this.powerups = this.powerups.filter(pu => !pu.gone);
+
         // Update Musuh
         this.enemies.forEach(e => {
             if (!e.alive) {
@@ -1790,6 +1880,13 @@ class PlayerWorld {
             if (e.x <= e.minX) { e.x = e.minX; e.vx = Math.abs(e.vx); }
             if (e.x + e.w >= e.maxX) { e.x = e.maxX - e.w; e.vx = -Math.abs(e.vx); }
 
+            if (this.rectsOverlap(p, e) && p.starTimer > 0) {
+                e.alive = false; e.squashTimer = 0.5;
+                this.score += 200; sfx.stomp();
+                this.spawnParticles(e.x + e.w / 2, e.y + e.h / 2, '#fde047', 14);
+                this.spawnFloatingText(e.x, e.y - 10, '+200', '#fde047');
+                return;
+            }
             if (this.rectsOverlap(p, e)) {
                 // Cek apakah pemain melompat tepat di atas musuh
                 const playerBottomPrev = (p.y + p.h) - p.vy * dt;
@@ -1821,7 +1918,8 @@ class PlayerWorld {
                 this.finished = true;
                 this.finishTime = this.elapsedTime;
                 this.score += 500;
-                sfx.win();
+                this.player.starTimer = 0;
+                if (numPlayers === 1) { sfx.fanfare(); } else { sfx.win(); }
                 onPlayerFinished(this.playerIndex);
             } else {
                 // Jika mencoba melewati FINISH sebelum 10 soal selesai, tampilkan peringatan tanpa memblokir fisik secara keras
@@ -1839,6 +1937,14 @@ class PlayerWorld {
     }
 
     handlePlayerHurt(fellInPit) {
+        if (!fellInPit && this.player.big) {
+            this.player.big = false;
+            this.player.invulnTimer = 1.6;
+            sfx.shrink();
+            this.spawnFloatingText(this.player.x - 10, this.player.y - 20, 'MENGECIL!', '#f97316');
+            return;
+        }
+        if (fellInPit) { this.player.big = false; this.player.starTimer = 0; updateStarMusic(); }
         if (fellInPit) sfx.fall(); else sfx.hurt();
         this.lives -= 1;
         this.spawnParticles(this.player.x + 17, this.player.y + 20, '#ef4444', 15);
@@ -2087,11 +2193,42 @@ class PlayerWorld {
             }
         });
 
+        // 12b. Power-Up
+        this.powerups.forEach(pu => {
+            const x = pu.x, y = pu.y;
+            if (pu.kind === 'mushroom') {
+                ctx.fillStyle = '#000'; ctx.fillRect(x + 1, y + 1, 26, 15); ctx.fillRect(x + 6, y + 14, 16, 14);
+                ctx.fillStyle = '#e52521'; ctx.fillRect(x + 3, y + 3, 22, 12);
+                ctx.fillStyle = '#fff'; ctx.fillRect(x + 6, y + 5, 6, 6); ctx.fillRect(x + 17, y + 5, 6, 6);
+                ctx.fillStyle = '#fde3b3'; ctx.fillRect(x + 8, y + 15, 12, 11);
+                ctx.fillStyle = '#000'; ctx.fillRect(x + 10, y + 18, 2, 4); ctx.fillRect(x + 16, y + 18, 2, 4);
+            } else {
+                const cx = x + 14, cy = y + 14, t = performance.now() / 120;
+                ctx.fillStyle = ['#fde047', '#fb923c', '#fff'][Math.floor(t) % 3];
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let i = 0; i < 10; i++) {
+                    const r = i % 2 === 0 ? 14 : 6, a = -Math.PI / 2 + i * Math.PI / 5;
+                    ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+                }
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+                ctx.fillStyle = '#000'; ctx.fillRect(cx - 4, cy - 3, 2, 5); ctx.fillRect(cx + 2, cy - 3, 2, 5);
+            }
+        });
+
         // 13. Karakter Utama
         const p = this.player;
         const blink = p.invulnTimer > 0 && Math.floor(p.invulnTimer * 15) % 2 === 0;
         if (!blink) {
-            drawPixelCharacter(ctx, p.x, p.y, p.w, p.h, p.state, p.facing, p.animTimer, this.hatColor, this.shirtColor);
+            let hat = this.hatColor, shirt = this.shirtColor;
+            if (p.starTimer > 0) {
+                const rb = ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7'];
+                const k = Math.floor(performance.now() / 70);
+                hat = rb[k % 5]; shirt = rb[(k + 2) % 5];
+            }
+            const dh = p.big ? Math.round(p.h * 0.4) : 0;
+            const dw = p.big ? Math.round(p.w * 0.25) : 0;
+            drawPixelCharacter(ctx, p.x - dw / 2, p.y - dh, p.w + dw, p.h + dh, p.state, p.facing, p.animTimer, hat, shirt);
         }
 
         // 14. Partikel & Teks Skor Melayang
@@ -2192,9 +2329,12 @@ function toggleSound() {
     if (m3) m3.textContent = labelHud;
 
     if (!sfx.enabled) {
+        MenuMusic.stop();
         pauseBgMusic();
     } else if (gameState === 'playing') {
         playBgMusic();
+    } else if (gameState === 'menu') {
+        MenuMusic.start();
     }
 }
 
@@ -2317,6 +2457,7 @@ function startGameFromSetup(e) {
 
     updateTouchVisibility();
     gameState = 'playing';
+    MenuMusic.stop();
     playBgMusic();
 }
 
@@ -2425,6 +2566,7 @@ function onPlayerFinished(playerIdx) {
         if (worlds.every(world => world.finished)) {
             gameState = 'victory';
             stopBgMusic();
+            sfx.fanfare();
             showVictoryModal();
         }
     }
@@ -2525,6 +2667,8 @@ function quitToMenu() {
     document.getElementById('screen-menu').classList.remove('hidden');
     gameState = 'menu';
     stopBgMusic();
+    updateStarMusic();
+    MenuMusic.start();
 }
 
 /* --- Question Bank CRUD --- */
